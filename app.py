@@ -1,15 +1,10 @@
-import pyodbc
+import sqlite3
+import os
 from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-conn = pyodbc.connect(
-    'DRIVER={SQL Server};'
-    'SERVER=LAPTOP-RN45P3S7\\SQLEXPRESS;'
-    'DATABASE=pollution_db;'
-    'Trusted_Connection=yes;'
-)
-
+conn = sqlite3.connect("pollution.db", check_same_thread=False)
 cursor = conn.cursor()
 
 def get_suggestion(pollution_type):
@@ -117,19 +112,21 @@ def analysis():
 
     # 🔹 4. Top area
     cursor.execute("""
-        SELECT TOP 1 area, COUNT(*) as c 
-        FROM complaints 
-        GROUP BY area 
+        SELECT area, COUNT(*) as c
+        FROM complaints
+        GROUP BY area
         ORDER BY c DESC
+        LIMIT 1
     """)
     top_area = cursor.fetchone()
 
     # 🔹 5. Top pollution type
     cursor.execute("""
-        SELECT TOP 1 pollution_type, COUNT(*) as c
+        SELECT pollution_type, COUNT(*) as c
         FROM complaints
         GROUP BY pollution_type
         ORDER BY c DESC
+        LIMIT 1
     """)
     top_type = cursor.fetchone()
 
@@ -212,5 +209,8 @@ def trend():
 
     return render_template('trend.html', data=data)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000))
+    )
